@@ -1,0 +1,25 @@
+{
+  "name": "meme-video-generator",
+  "version": "1.0.0",
+  "description": "Automated vertical (9:16) meme video generator for YouTube Shorts/TikTok",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "generate": "node index.js"
+  },
+  "keywords": [
+    "meme",
+    "video",
+    "youtube-shorts",
+    "tiktok",
+    "ffmpeg",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "dotenv": "^16.3.1",
+    "fluent-ffmpeg": "^2.1.2"
+  }
+}
