@@ -3,6 +3,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const uploader = require('./uploader');
 
 // Configuration
 const CONFIG = {
@@ -201,7 +202,7 @@ async function fetchMemes(count = 2) {
 }
 
 /**
- * Download image from URL to local path
+ * Download image from URL to local path with validation
  */
 async function downloadImage(url, outputPath) {
   console.log(`⬇️  Downloading meme image...`);
@@ -209,14 +210,43 @@ async function downloadImage(url, outputPath) {
   const response = await axios.get(url, {
     responseType: 'arraybuffer',
     headers: {
-      'User-Agent': 'MemeVideoBot/1.0'
-    }
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+    },
+    timeout: 30000,
+    maxRedirects: 5,
   });
   
-  fs.writeFileSync(outputPath, response.data);
-  console.log(`✅ Image saved to: ${outputPath}`);
+  const buffer = Buffer.from(response.data);
   
-  return outputPath;
+  // Validate image signature (magic bytes)
+  const isJPEG = buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+  const isPNG = buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47;
+  const isGIF = buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46;
+  const isWEBP = buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50;
+  
+  if (!isJPEG && !isPNG && !isGIF && !isWEBP) {
+    // Check if it's HTML (error page)
+    const preview = buffer.slice(0, 100).toString('utf-8').toLowerCase();
+    if (preview.includes('<html') || preview.includes('<!doctype')) {
+      throw new Error('Downloaded HTML instead of image (possible 403/404 error)');
+    }
+    throw new Error(`Invalid image format (not JPEG/PNG/GIF/WEBP)`);
+  }
+  
+  // Fix extension if needed
+  let correctedPath = outputPath;
+  if (isJPEG && !outputPath.toLowerCase().endsWith('.jpg') && !outputPath.toLowerCase().endsWith('.jpeg')) {
+    correctedPath = outputPath.replace(/\.[^.]+$/, '.jpg');
+  } else if (isPNG && !outputPath.toLowerCase().endsWith('.png')) {
+    correctedPath = outputPath.replace(/\.[^.]+$/, '.png');
+  } else if (isGIF && !outputPath.toLowerCase().endsWith('.gif')) {
+    correctedPath = outputPath.replace(/\.[^.]+$/, '.gif');
+  }
+  
+  fs.writeFileSync(correctedPath, buffer);
+  console.log(`✅ Image saved to: ${correctedPath}`);
+  
+  return correctedPath;
 }
 
 /**
@@ -349,8 +379,23 @@ function cleanup() {
  * Main function - orchestrates the entire video generation
  */
 async function main() {
+  // Check for --upload flag
+  const shouldUpload = process.argv.includes('--upload');
+  const privacyStatus = process.argv.includes('--public') ? 'public' : 'private';
+  
   console.log('🚀 Meme Video Generator');
   console.log('========================\n');
+  
+  if (shouldUpload) {
+    console.log('📤 Upload mode: enabled');
+    console.log(`🔒 Privacy: ${privacyStatus}\n`);
+    
+    if (!uploader.isConfigured()) {
+      console.error('❌ YouTube upload requires client_secrets.json');
+      console.error('   See README.md for setup instructions');
+      process.exit(1);
+    }
+  }
   
   try {
     // 1. Get random background video
@@ -381,7 +426,7 @@ async function main() {
     // 7. Cleanup
     cleanup();
     
-    console.log('\n🎉 All done!');
+    console.log('\n🎉 Video generation complete!');
     console.log(`\nVideo details:`);
     memes.forEach((meme, i) => {
       console.log(`   - Meme ${i + 1}: "${meme.title.substring(0, 40)}..."`);
@@ -389,7 +434,20 @@ async function main() {
     });
     console.log(`   - Output: ${outputPath}`);
     
-    return outputPath;
+    // 8. Upload to YouTube if requested
+    if (shouldUpload) {
+      const memeTitles = memes.map(m => m.title);
+      const uploadResult = await uploader.uploadVideo(outputPath, {
+        memeTitles,
+        privacyStatus,
+      });
+      
+      console.log('\n🎉 All done! Video uploaded to YouTube.');
+      return uploadResult;
+    }
+    
+    console.log('\n🎉 All done!');
+    return { outputPath };
     
   } catch (error) {
     console.error(`\n❌ Error: ${error.message}`);

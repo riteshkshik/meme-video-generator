@@ -4,6 +4,10 @@ node_modules/
 # Environment
 .env
 
+# YouTube API credentials
+client_secrets.json
+token.json
+
 # Temp files
 .temp/
 

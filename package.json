@@ -5,7 +5,11 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "generate": "node index.js"
+    "generate": "node index.js",
+    "generate-one": "node scheduler.js generate",
+    "upload-all": "node scheduler.js upload",
+    "status": "node scheduler.js status",
+    "batch:upload": "node scheduler.js batch --count 6"
   },
   "keywords": [
     "meme",
@@ -20,6 +24,7 @@
   "dependencies": {
     "axios": "^1.6.2",
     "dotenv": "^16.3.1",
-    "fluent-ffmpeg": "^2.1.2"
+    "fluent-ffmpeg": "^2.1.2",
+    "googleapis": "^144.0.0"
   }
 }
