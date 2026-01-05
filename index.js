@@ -4,6 +4,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const uploader = require('./uploader');
+const reddit = require('./reddit');
 
 // Configuration
 const CONFIG = {
@@ -116,11 +117,17 @@ function getRandomSources(count = 2) {
 
 /**
  * Fetch top image post from a source (subreddit or user)
+ * Uses Reddit OAuth API if configured, otherwise falls back to public JSON
  */
 async function fetchMemeFromSource(source) {
-  // Determine if it's a subreddit or user
+  // Use Reddit OAuth if configured (recommended for server environments)
+  if (reddit.isConfigured()) {
+    return await reddit.fetchFromSource(source);
+  }
+  
+  // Fallback to public JSON API (may fail on server IPs)
   const isUser = source.startsWith('u/');
-  const name = source.substring(2); // Remove r/ or u/ prefix
+  const name = source.substring(2);
   
   const url = isUser
     ? `https://www.reddit.com/user/${name}/submitted.json?limit=25&sort=top&t=day`

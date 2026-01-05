@@ -20,9 +20,31 @@ Automated vertical (9:16) video generator for YouTube Shorts/TikTok. Combines ga
 
 3. (Optional) Add music tracks to `assets/music/`
 
-4. Configure `.env` (optional):
+4. **Reddit OAuth Setup (Required for AWS/Server environments):**
+
+   Reddit blocks requests from datacenter IPs. To run on servers, you need OAuth credentials:
+
+   1. Go to [https://www.reddit.com/prefs/apps](https://www.reddit.com/prefs/apps)
+   2. Click **"create another app..."** at the bottom
+   3. Fill in:
+      - Name: `MemeVideoBot` (or any name)
+      - Type: Select **script**
+      - Redirect URI: `http://localhost:8080` (not used, but required)
+   4. Click **Create app**
+   5. Note the **client ID** (under the app name) and **secret**
+
+   Add to your `.env`:
    ```env
-   REDDIT_SUBREDDIT=memes
+   REDDIT_CLIENT_ID=your_client_id_here
+   REDDIT_CLIENT_SECRET=your_secret_here
+   REDDIT_USERNAME=your_reddit_username
+   ```
+
+5. Configure other options in `.env` (optional):
+   ```env
+   BLUR_INTENSITY=10
+   OUTPUT_WIDTH=1080
+   OUTPUT_HEIGHT=1920
    ```
 
 ## Usage
